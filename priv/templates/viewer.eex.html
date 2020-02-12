@@ -33,7 +33,6 @@
       }
 			.list {
 				width: 20%;
-				border-right: 3px solid #8C382B;
 			}
 			.view {
 				width: 80%;
@@ -43,10 +42,16 @@
 				padding: 22px;
 				background-color: #C4BBA7;
 				border-bottom: 1px solid #8C382B;
+				border-right: 5px solid #8C382B;
 				transition: background-color .4s;
+				transition: border-color .4s;
 			}
-			.item:hover, .item.selected {
+			.item:hover {
 				background-color: #ADC9BF;
+			}
+			.item.selected {
+				background-color: #ADC9BF;
+				border-right: 3px solid #ADC9BF;
 			}
 			.item * {
 				pointer-events: none;
