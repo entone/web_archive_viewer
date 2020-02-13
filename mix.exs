@@ -22,8 +22,9 @@ defmodule WebArchiveViewer.MixProject do
     [
       {:eex_html, "~> 1.0"},
       {:jason, "~> 1.1"},
+      {:meeseeks, "~> 0.14.0"},
       {:plug_cowboy, "~> 2.1"},
-      {:unzip, "~> 0.1.0"}
+      {:sonix, github: "imerkle/sonix", tag: "1691c76e2167c7090f6d924d8c030ac448fd7b67"}
     ]
   end
 end

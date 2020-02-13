@@ -3,6 +3,8 @@ defmodule WebArchiveViewer.Archives do
 
   require Logger
 
+  alias WebArchiveViewer.Index
+
   @poll_interval 60_000
 
   def start_link(path: path) do
@@ -32,9 +34,7 @@ defmodule WebArchiveViewer.Archives do
     do: {:reply, Map.get(a, id), state}
 
   def handle_call({:get_file, archive, name}, _from, state) do
-    file = find_file(archive, name)
-    {:ok, {_, data}} = :zip.zip_get(String.to_charlist(file.name), archive.zip)
-    {:reply, data, state}
+    {:reply, extract_file(archive, name), state}
   end
 
   def handle_info(:get_archives, %{path: path} = state) do
@@ -46,12 +46,24 @@ defmodule WebArchiveViewer.Archives do
     path
     |> list_archives()
     |> expand_archives()
+    |> Enum.reduce(fn {k, archive}, acc ->
+      file = extract_file(archive, "index.html")
+      {:ok, res} = Index.run("pages", "entone", "page:#{k}", archive.title, archive.host, file)
+      Logger.info(res)
+      acc
+    end)
   end
 
   defp find_file(archive, name) do
     Enum.find(archive.entries, fn %{name: file_name} ->
       String.ends_with?(file_name, name)
     end)
+  end
+
+  defp extract_file(archive, name) do
+    file = find_file(archive, name)
+    {:ok, {_, data}} = :zip.zip_get(String.to_charlist(file.name), archive.zip)
+    data
   end
 
   def expand_archives(archives) do
