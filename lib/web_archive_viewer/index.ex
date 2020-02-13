@@ -49,9 +49,26 @@ defmodule WebArchiveViewer.Index do
   def push(content, collection, bucket, id) do
     {:ok, conn} = Sonix.init()
     {:ok, conn} = Sonix.start(conn, "ingest", "SecretPassword")
-    content = String.slice(content, 0..19_000)
-    :ok = Ingest.push(conn, collection, bucket, id, content)
+    parts = get_parts(content)
+
+    Enum.each(
+      parts,
+      fn p ->
+        :ok = Ingest.push(conn, collection, bucket, id, p)
+      end
+    )
+
     :ok = Sonix.quit(conn)
     {:ok, content}
+  end
+
+  def get_parts(content, parts \\ []) do
+    {part, rest} = String.split_at(content, 19_000)
+    parts = [part | parts]
+
+    case rest do
+      "" -> parts
+      rest -> get_parts(rest, parts)
+    end
   end
 end
