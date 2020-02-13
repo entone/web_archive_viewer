@@ -3,6 +3,8 @@ defmodule WebArchiveViewer.Archives do
 
   require Logger
 
+  @poll_interval 60_000
+
   def start_link(path: path) do
     GenServer.start_link(__MODULE__, path, name: __MODULE__)
   end
@@ -20,12 +22,8 @@ defmodule WebArchiveViewer.Archives do
   end
 
   def init(path) do
-    archives =
-      path
-      |> list_archives()
-      |> expand_archives()
-
-    {:ok, %{archives: archives}}
+    Process.send_after(self(), :get_archives, @poll_interval)
+    {:ok, %{archives: get_archives(path), path: path}}
   end
 
   def handle_call(:get, _from, %{archives: a} = state), do: {:reply, a, state}
@@ -37,6 +35,17 @@ defmodule WebArchiveViewer.Archives do
     file = find_file(archive, name)
     {:ok, {_, data}} = :zip.zip_get(String.to_charlist(file.name), archive.zip)
     {:reply, data, state}
+  end
+
+  def handle_info(:get_archives, %{path: path} = state) do
+    Process.send_after(self(), :get_archives, @poll_interval)
+    {:noreply, %{state | archives: get_archives(path)}}
+  end
+
+  defp get_archives(path) do
+    path
+    |> list_archives()
+    |> expand_archives()
   end
 
   defp find_file(archive, name) do

@@ -14,7 +14,7 @@ defmodule WebArchiveViewer.Application do
 
     children = [
       {WebArchiveViewer.Archives, path: @path},
-      {Plug.Cowboy, scheme: :http, plug: Router, options: [port: port]}
+      {Plug.Cowboy, scheme: :http, plug: Router, options: [port: port, compress: true]}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

@@ -8,6 +8,7 @@
     <title>Web Archive Viewer</title>
     <style>
       html, body {
+        font-size: 13px;
         margin: 0;
         padding: 0;
         height: 100%;
@@ -21,6 +22,8 @@
       }
 			ul {
 				list-style-type: none;
+        display: flex;
+        flex-direction: row;
 				margin: 0;
 				padding: 0;
 			}
@@ -29,29 +32,38 @@
 			}
       .flex-container {
         display: flex;
+        flex-direction: column;
 				height: 100%;
       }
 			.list {
-				width: 20%;
+				height: 15%;
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
 			}
 			.view {
-				width: 80%;
-				height: 100%;
+				width: 100%;
+				height: 85%;
 			}
 			.item {
-				padding: 22px;
+				padding: 11px;
+        padding-top: 5px;
 				background-color: #C4BBA7;
-				border-bottom: 1px solid #8C382B;
-				border-right: 5px solid #8C382B;
+				border-right: 1px solid #8C382B;
+				border-top: 5px solid #8C382B;
 				transition: background-color .4s;
 				transition: border-color .4s;
+        height: 100%;
+        min-width: 200px;
+        width: 25%;
+        max-width: 300px;
 			}
 			.item:hover {
 				background-color: #ADC9BF;
 			}
 			.item.selected {
 				background-color: #ADC9BF;
-				border-right: 3px solid #ADC9BF;
+				border-top: 3px solid #ADC9BF;
 			}
 			.item * {
 				pointer-events: none;
@@ -71,7 +83,6 @@
 				font-size: .8em;
 				font-style: italic;
 			}
-			
     </style>
 		<script>
     	function load_archive(e) {
@@ -84,6 +95,7 @@
 				var id = e.target.getAttribute('data-id');
   			var viewer = document.getElementById('viewer');
 				viewer.src = '/archive/' + id + '/index.html';
+        return false;
     	}
 			
 			function load() {
@@ -97,7 +109,10 @@
    	</script>
   </head>
   <body onload="load();">
-    <div class="flex-container">
+    <div class="flex-container"> 
+			<div class="view">
+        <iframe id="viewer" src=""></iframe>
+			</div>
       <div class="list">
         <ul>
           <%= for {k, v} <- archives do %>
@@ -111,9 +126,6 @@
           <% end %>
         </ul>
       </div>
-			<div class="view">
-      	<iframe id="viewer" src="" />
-			</div>
     </div>
   </body>
 </html>
