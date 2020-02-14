@@ -6,6 +6,7 @@ defmodule WebArchiveViewer.MixProject do
       app: :web_archive_viewer,
       version: "0.1.0",
       elixir: "~> 1.9",
+      releases: releases(),
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
@@ -18,12 +19,22 @@ defmodule WebArchiveViewer.MixProject do
     ]
   end
 
+  defp releases do
+    [
+      app: [
+        include_executables_for: [:unix],
+        applications: [web_archive_viewer: :permanent, runtime_tools: :permanent]
+      ]
+    ]
+  end
+
   defp deps do
     [
       {:eex_html, "~> 1.0"},
       {:jason, "~> 1.1"},
+      {:meeseeks, "~> 0.14.0"},
       {:plug_cowboy, "~> 2.1"},
-      {:unzip, "~> 0.1.0"}
+      {:sonix, github: "imerkle/sonix", tag: "1691c76e2167c7090f6d924d8c030ac448fd7b67"}
     ]
   end
 end

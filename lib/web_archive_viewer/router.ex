@@ -15,7 +15,21 @@ defmodule WebArchiveViewer.Router do
 
   plug(:dispatch)
 
-  get "/view" do
+  get "/search" do
+    %{"q" => query} = conn.params
+
+    case query do
+      "" ->
+        send_resp(conn, 200, Jason.encode!([]))
+
+      query ->
+        {:ok, res} = Archives.search(query)
+        res = Enum.map(res, fn r -> Map.delete(r, :zip) end)
+        send_json(conn, 200, Jason.encode!(res))
+    end
+  end
+
+  get "/" do
     file =
       :web_archive_viewer
       |> :code.priv_dir()
@@ -23,6 +37,7 @@ defmodule WebArchiveViewer.Router do
       |> File.read!()
 
     archives = Archives.get_all()
+    Logger.info("#{inspect(archives)}")
     content = EEx.eval_string(file, archives: archives)
 
     conn
@@ -41,6 +56,12 @@ defmodule WebArchiveViewer.Router do
 
   match _ do
     send_resp(conn, 404, "oops")
+  end
+
+  def send_json(conn, code, content) do
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(code, content)
   end
 
   def send_html(conn, code, content) do

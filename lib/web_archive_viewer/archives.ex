@@ -3,6 +3,12 @@ defmodule WebArchiveViewer.Archives do
 
   require Logger
 
+  alias WebArchiveViewer.{Index, Search}
+
+  @collection Application.get_env(:web_archive_viewer, :collection)
+  @bucket Application.get_env(:web_archive_viewer, :bucket)
+  @pwd Application.get_env(:web_archive_viewer, :pwd)
+
   @poll_interval 60_000
 
   def start_link(path: path) do
@@ -23,7 +29,11 @@ defmodule WebArchiveViewer.Archives do
 
   def init(path) do
     Process.send_after(self(), :get_archives, @poll_interval)
-    {:ok, %{archives: get_archives(path), path: path}}
+    {:ok, %{archives: get_archives(path, %{}), path: path}}
+  end
+
+  def search(text) do
+    GenServer.call(__MODULE__, {:search, text})
   end
 
   def handle_call(:get, _from, %{archives: a} = state), do: {:reply, a, state}
@@ -32,26 +42,60 @@ defmodule WebArchiveViewer.Archives do
     do: {:reply, Map.get(a, id), state}
 
   def handle_call({:get_file, archive, name}, _from, state) do
-    file = find_file(archive, name)
-    {:ok, {_, data}} = :zip.zip_get(String.to_charlist(file.name), archive.zip)
-    {:reply, data, state}
+    {:reply, extract_file(archive, name), state}
   end
 
-  def handle_info(:get_archives, %{path: path} = state) do
+  def handle_call({:search, text}, _, %{archives: a} = s) do
+    {:ok, res} = Search.search(@collection, @bucket, @pwd, text)
+
+    res =
+      Enum.map(res, fn id ->
+        a = Map.get(a, id)
+        Map.put(a, :id, id)
+      end)
+
+    {:reply, {:ok, res}, s}
+  end
+
+  def handle_info(:get_archives, %{path: path, archives: archives} = state) do
     Process.send_after(self(), :get_archives, @poll_interval)
-    {:noreply, %{state | archives: get_archives(path)}}
+    {:noreply, %{state | archives: get_archives(path, archives)}}
   end
 
-  defp get_archives(path) do
+  defp get_archives(path, archives) do
     path
     |> list_archives()
     |> expand_archives()
+    |> Enum.reduce(%{}, fn {k, archive}, acc ->
+      maybe_index(k, archive, archives)
+      Map.put(acc, k, archive)
+    end)
+  end
+
+  def maybe_index(k, archive, archives) do
+    case Map.get(archives, k) do
+      nil ->
+        file = extract_file(archive, "index.html")
+
+        {:ok, res} = Index.run(archive.title, archive.host, file)
+        Search.push(@collection, @bucket, @pwd, {k, res})
+        Logger.info(res)
+
+      _ ->
+        nil
+    end
   end
 
   defp find_file(archive, name) do
     Enum.find(archive.entries, fn %{name: file_name} ->
       String.ends_with?(file_name, name)
     end)
+  end
+
+  defp extract_file(archive, name) do
+    file = find_file(archive, name)
+    {:ok, {_, data}} = :zip.zip_get(String.to_charlist(file.name), archive.zip)
+    data
   end
 
   def expand_archives(archives) do

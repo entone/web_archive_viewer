@@ -1,9 +1,7 @@
 # The directory Mix will write compiled artifacts to.
 /_build/
 
-/store/*
-
-!/store/.keep
+/store/
 
 # If you run "mix test --cover", coverage assets end up here.
 /cover/
@@ -26,4 +24,3 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 web_archive_viewer-*.tar
 
-dev.env
