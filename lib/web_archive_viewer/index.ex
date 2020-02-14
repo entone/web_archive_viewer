@@ -1,8 +1,6 @@
 defmodule WebArchiveViewer.Index do
   import Meeseeks.CSS
 
-  alias Sonix.Modes.Ingest
-
   require Logger
 
   @tags ~w(p blockquote strong h1 h2 h3)
@@ -11,7 +9,7 @@ defmodule WebArchiveViewer.Index do
 
   @non_words ~r/\W/ux
 
-  def run(collection, bucket, id, title, host, content) do
+  def run(title, host, content) do
     content
     |> Meeseeks.parse()
     |> extract_text()
@@ -19,7 +17,7 @@ defmodule WebArchiveViewer.Index do
     |> add_text(title)
     |> add_text(host)
     |> clean_text()
-    |> push(collection, bucket, id)
+    |> chunk()
   end
 
   def clean_text(text) do
@@ -48,29 +46,17 @@ defmodule WebArchiveViewer.Index do
 
   def add_text(base, prepend), do: base <> " " <> prepend
 
-  def push(content, collection, bucket, id) do
-    {:ok, conn} = Sonix.init()
-    {:ok, conn} = Sonix.start(conn, "ingest", "SecretPassword")
-    parts = get_parts(content)
-
-    Enum.each(
-      parts,
-      fn p ->
-        :ok = Ingest.push(conn, collection, bucket, id, p)
-      end
-    )
-
-    :ok = Sonix.quit(conn)
-    {:ok, content}
+  def chunk(content) do
+    {:ok, get_chunks(content)}
   end
 
-  def get_parts(content, parts \\ []) do
-    {part, rest} = split_at_space(content)
-    parts = [part | parts]
+  def get_chunks(content, chunks \\ []) do
+    {chunk, rest} = split_at_space(content)
+    chunks = [chunk | chunks]
 
     case rest do
-      "" -> parts
-      rest -> get_parts(rest, parts)
+      "" -> chunks
+      rest -> get_chunks(rest, chunks)
     end
   end
 

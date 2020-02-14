@@ -1,0 +1,23 @@
+version: "3.7"
+services:
+  web:
+    build:
+      context: .
+    ports:
+      - "4000:4000"
+    command: "start"
+    volumes:
+      - ${ARCHIVE_PATH}:${DOCKER_ARCHIVE_PATH}
+    environment:
+      - ARCHIVE_PATH=${DOCKER_ARCHIVE_PATH}
+      - SEARCH_HOST=search
+      - SEARCH_PORT=1491
+    depends_on:
+      - search
+  search:
+    image: valeriansaliou/sonic:v1.2.3
+    expose:
+      - "1491/tcp"
+    volumes:
+      - ./sonic_config/config.cfg:/etc/sonic.cfg 
+      - ./store:/var/lib/sonic/store/

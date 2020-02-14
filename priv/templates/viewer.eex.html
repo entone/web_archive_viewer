@@ -20,7 +20,21 @@
         height: 100%;
         border: none;
       }
-			ul {
+      ul#results {
+				list-style-type: none;
+        margin: 0;
+				padding: 0;
+      }
+      ul#results > li {
+        background-color: #eeeeee;
+        border-bottom: 1px solid #333333;
+        padding: 11px;
+      }
+      ul#results > li.selected {
+        background-color: #ffffff;
+        border-bottom: 1px solid #8C382B;
+      }
+			ul#archives {
 				list-style-type: none;
         display: flex;
         flex-direction: row;
@@ -30,6 +44,14 @@
 			li {
 				cursor: pointer;
 			}
+      #search {
+        position: absolute;
+        bottom: 15%;
+        right: 0px;
+        padding: 12px;
+        width: 20%;
+        background-color: #C4BBA7;
+      }
       .flex-container {
         display: flex;
         flex-direction: column;
@@ -85,39 +107,97 @@
 			}
     </style>
 		<script>
+      var result_position = -1;
+
     	function load_archive(e) {
 				var items = document.getElementsByClassName('item');
 				for(let el of items) {
 					el.classList.remove('selected');
 				};
 				e.target.classList.add('selected');
-				console.log(e.target);
+        var datalist = document.getElementById('results');
+        while(datalist.firstChild) datalist.removeChild(datalist.firstChild);
+        document.getElementById('search_input').value = "";
 				var id = e.target.getAttribute('data-id');
   			var viewer = document.getElementById('viewer');
 				viewer.src = '/archive/' + id + '/index.html';
+        setTimeout(() => viewer.contentWindow.focus(), 700);
         return false;
     	}
+
+      function get_results(e) {
+        if([13, 38, 40].indexOf(e.keyCode) !== -1) return;
+        var val = document.getElementById('search_input').value;
+        fetch('/search?q='+val)
+          .then((resp) => resp.json())
+          .then((json) => populate_datalist(json))
+      }
+
+      function populate_datalist(list) {
+        result_position = list.length - 1;
+        var datalist = document.getElementById('results');
+        while(datalist.firstChild) datalist.removeChild(datalist.firstChild);
+        for(let i of list){
+          var li = document.createElement('li');
+          li.setAttribute('id',  i.id);
+          li.setAttribute('data-id', i.id);
+          li.classList.add('result');
+          li.onclick = load_archive;
+          li.innerHTML = i.title;
+          datalist.appendChild(li);
+        }
+      }
+      
+      function scroll_results() {
+        var e = event;
+        var results = document.getElementById('results').children;
+        var pressed = false;
+        if (e.keyCode === 40) {        
+          result_position+=1;
+          pressed = true;
+        } else if (e.keyCode === 38) {        
+          result_position-=1;
+          pressed = true;
+        } else if (e.keyCode === 13) {
+          load_archive({target: results[result_position]});
+        }
+
+        if(result_position > (results.length - 1)) result_position = 0;
+        if(result_position < 0) result_position = results.length - 1;
+        if(pressed && results.length) {
+				  for(let el of results) {
+					  el.classList.remove('selected');
+				  };
+          results[result_position].classList.add('selected');
+          return false;
+        }
+      }
 			
 			function load() {
 				var items = document.getElementsByClassName('item');
-				console.log(items);
 				for(let el of items) {
-					console.log(el);
 					el.onclick = load_archive;
 				};
+        var search_input = document.getElementById('search_input');
+        search_input.onkeydown = scroll_results;
+        search_input.onkeyup = get_results;
 			}
    	</script>
   </head>
   <body onload="load();">
+    <div id="search">
+      <ul id="results" ></ul>
+      <input placeholder="Search" type="search" autocomplete="off" id="search_input" name="q" />
+    </div>
     <div class="flex-container"> 
 			<div class="view">
         <iframe id="viewer" src=""></iframe>
 			</div>
       <div class="list">
-        <ul>
+        <ul id="archives">
           <%= for {k, v} <- archives do %>
             <li>
-							<div class='item' data-id="<%= k %>">
+              <div class='item' id="<%= k %>" data-id="<%= k %>">
 								<span class='title'><%= v.title %></span>
 								<span class='date'><%= v.modified %></span>
 								<span class='host'><%= v.host %></span>

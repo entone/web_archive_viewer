@@ -6,6 +6,7 @@ defmodule WebArchiveViewer.MixProject do
       app: :web_archive_viewer,
       version: "0.1.0",
       elixir: "~> 1.9",
+      releases: releases(),
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
@@ -15,6 +16,15 @@ defmodule WebArchiveViewer.MixProject do
     [
       extra_applications: [:logger],
       mod: {WebArchiveViewer.Application, []}
+    ]
+  end
+
+  defp releases do
+    [
+      app: [
+        include_executables_for: [:unix],
+        applications: [web_archive_viewer: :permanent, runtime_tools: :permanent]
+      ]
     ]
   end
 

@@ -7,13 +7,12 @@ defmodule WebArchiveViewer.Application do
   require Logger
   alias WebArchiveViewer.Router
 
-  @path "/media/entone/Extra Drive 1/Downloads/web_archive/data"
-
   def start(_type, _args) do
     port = Application.get_env(:web_archive_viewer, :http_port) || 4000
+    path = System.get_env("ARCHIVE_PATH")
 
     children = [
-      {WebArchiveViewer.Archives, path: @path},
+      {WebArchiveViewer.Archives, path: path},
       {Plug.Cowboy, scheme: :http, plug: Router, options: [port: port, compress: true]}
     ]
 
