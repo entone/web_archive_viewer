@@ -6,6 +6,8 @@ defmodule WebArchiveViewer.Archives do
   alias WebArchiveViewer.Index
 
   @poll_interval 60_000
+  @collection "archives"
+  @bucket "entone"
 
   def start_link(path: path) do
     GenServer.start_link(__MODULE__, path, name: __MODULE__)
@@ -25,7 +27,7 @@ defmodule WebArchiveViewer.Archives do
 
   def init(path) do
     Process.send_after(self(), :get_archives, @poll_interval)
-    {:ok, %{archives: get_archives(path), path: path}}
+    {:ok, %{archives: get_archives(path, %{}), path: path}}
   end
 
   def handle_call(:get, _from, %{archives: a} = state), do: {:reply, a, state}
@@ -37,21 +39,34 @@ defmodule WebArchiveViewer.Archives do
     {:reply, extract_file(archive, name), state}
   end
 
-  def handle_info(:get_archives, %{path: path} = state) do
+  def handle_info(:get_archives, %{path: path, archives: archives} = state) do
     Process.send_after(self(), :get_archives, @poll_interval)
-    {:noreply, %{state | archives: get_archives(path)}}
+    {:noreply, %{state | archives: get_archives(path, archives)}}
   end
 
-  defp get_archives(path) do
+  defp get_archives(path, archives) do
     path
     |> list_archives()
     |> expand_archives()
-    |> Enum.reduce(fn {k, archive}, acc ->
-      file = extract_file(archive, "index.html")
-      {:ok, res} = Index.run("pages", "entone", "page:#{k}", archive.title, archive.host, file)
-      Logger.info(res)
-      acc
+    |> Enum.reduce(%{}, fn {k, archive}, acc ->
+      maybe_index(k, archive, archives)
+      Map.put(acc, k, archive)
     end)
+  end
+
+  def maybe_index(k, archive, archives) do
+    case Map.get(archives, k) do
+      nil ->
+        file = extract_file(archive, "index.html")
+
+        {:ok, res} =
+          Index.run(@collection, @bucket, "page:#{k}", archive.title, archive.host, file)
+
+        Logger.info(res)
+
+      _ ->
+        nil
+    end
   end
 
   defp find_file(archive, name) do

@@ -23,6 +23,7 @@ defmodule WebArchiveViewer.Router do
       |> File.read!()
 
     archives = Archives.get_all()
+    Logger.info("#{inspect(archives)}")
     content = EEx.eval_string(file, archives: archives)
 
     conn

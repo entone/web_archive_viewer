@@ -7,6 +7,8 @@ defmodule WebArchiveViewer.Index do
 
   @tags ~w(p blockquote strong h1 h2 h3)
 
+  @buffer 19_900
+
   @non_words ~r/\W/ux
 
   def run(collection, bucket, id, title, host, content) do
@@ -63,7 +65,7 @@ defmodule WebArchiveViewer.Index do
   end
 
   def get_parts(content, parts \\ []) do
-    {part, rest} = String.split_at(content, 19_000)
+    {part, rest} = split_at_space(content)
     parts = [part | parts]
 
     case rest do
@@ -71,4 +73,19 @@ defmodule WebArchiveViewer.Index do
       rest -> get_parts(rest, parts)
     end
   end
+
+  def split_at_space(content) when is_binary(content) do
+    words = String.split(content, " ")
+
+    Enum.reduce_while(words, {"", 0}, fn word, {chunk, count} ->
+      new = chunk <> " " <> word
+
+      case byte_size(new) < @buffer do
+        true -> {:cont, {new, count + 1}}
+        false -> {:halt, {chunk, Enum.join(Enum.slice(words, count..-1), " ")}}
+      end
+    end)
+  end
+
+  def split_at_space(c), do: {c, ""}
 end
